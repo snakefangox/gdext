@@ -469,6 +469,8 @@ impl ClassMethod {
         }
 
         let is_private = special_cases::is_method_private(class_name, &method.name);
+        let is_gdself = special_cases::is_virtual_method_gdself(class_name, rust_method_name);
+
         let godot_method_name = method.name.clone();
 
         let qualifier = {
@@ -478,7 +480,11 @@ impl ClassMethod {
                 is_actually_const = override_const;
             }
 
-            FnQualifier::from_const_static(is_actually_const, method.is_static)
+            if is_gdself {
+                FnQualifier::GdSelf
+            } else {
+                FnQualifier::from_const_static(is_actually_const, method.is_static)
+            }
         };
 
         // Since Godot 4.4, GDExtension advertises whether virtual methods have a default implementation or are required to be overridden.

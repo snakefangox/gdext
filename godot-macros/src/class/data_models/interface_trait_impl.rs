@@ -461,7 +461,7 @@ fn handle_regular_virtual_fn<'a>(
 ) -> Option<(venial::Punctuated<venial::FnParam>, Group)> {
     #[cfg(since_api = "4.4")]
     let method_name_ident = original_method.name.clone();
-    let method = util::reduce_to_signature(original_method);
+    let mut method = util::reduce_to_signature(original_method);
 
     // Godot-facing name begins with underscore.
     //
@@ -473,7 +473,13 @@ fn handle_regular_virtual_fn<'a>(
         format!("_{method_name}")
     };
 
-    let signature_info = into_signature_info(method, class_name, false);
+    // Some virtual methods are GdSelf, but none are static, so if the first param isn't a receiver (&self, etc) it's GdSelf
+    let is_gd_self = matches!(method.params.first(), Some((venial::FnParam::Typed(_), _)));
+    if is_gd_self {
+        // The GdSelf receiver is handled by `into_signature_info`
+        method.params.inner.remove(0);
+    }
+    let signature_info = into_signature_info(method, class_name, is_gd_self);
 
     let mut updated_function = None;
 
